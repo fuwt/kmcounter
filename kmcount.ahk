@@ -3,7 +3,7 @@
 #SingleInstance force
 #Persistent
 OnExit(ExitFunc)
-TraySetIcon("img\tray.ico")
+TraySetIcon("img\tray.png")
 
 deviceinfo := IniRead("kmcount_data.ini", "Config", A_ComputerName, GetDeviceCaps())
 if(A_LastError)
@@ -128,6 +128,7 @@ MenuHandler(ItemName, ItemPos, Menu) {
     update_data()
     mygui["static2"].Visible := True
     mygui["static3"].Visible := False
+    mygui["Static7"].Visible := False
     For Hwnd, GuiCtrlObj in MyGui
     {
       if(GuiCtrlObj.Type = "Edit")
@@ -193,11 +194,17 @@ ExitFunc(ExitReason, ExitCode) {
 CreateGui(){
   MyGui := Gui("+ToolWindow -Caption", "统计")
   MyGui.MarginX := 0, MyGui.MarginY := 0
-  MyGui.BackColor := "EEEEEE"
-  MyGui.Add("Picture","w1470 h430","img\bg.png")
+  MyGui.BackColor := iniread("kmcount_data.ini", "config", "bgcolor", "0xFFFFFF")
+  bgimg := iniread("kmcount_data.ini", "config", "bgimg", "img\bg.png")
+  if FileExist(bgimg){
+    MyGui.Add("Picture","w1470 h400",bgimg)
+    WinSetTransColor(MyGui.BackColor, MyGui)
+  }
+  else
+    MyGui.Add("Picture","w1470 h400",bgimg).Visible := False
   MyGui.SetFont("", "comic sans ms")
   ; 第一排
-  MyGui.Add("edit", "Disabled -Vscroll 0x201 w62 h56 xm+20 ym+60", "Esc").key := ["Esc", "Esc"]
+  MyGui.Add("edit", "Disabled -Vscroll 0x201 w62 h56 xm+20 ym+30", "Esc").key := ["Esc", "Esc"]
   MyGui.Add("edit", "Disabled -Vscroll 0x201 w62 h56 x+47", "F1").key := ["F1", "F1"]
   loop(3)
     MyGui.Add("edit", "Disabled -Vscroll 0x201 w62 h56 x+2", "F" A_Index + 1).key := ["F" A_Index + 1, "F" A_Index + 1]
@@ -210,10 +217,11 @@ CreateGui(){
   MyGui.Add("edit", "Disabled -Vscroll 0x201 w62 h56 x+10", "PtrSc").key := ["PrintScreen", "PtrSc"]
   MyGui.Add("edit", "Disabled -Vscroll 0x201 w62 h56 x+2", "Scroll").key := ["ScrollLock", "Scroll"]
   MyGui.Add("edit", "Disabled -Vscroll 0x201 w62 h56 x+2", "Pause").key := ["Pause", "Pause"]
-  MyGui.Add("Picture","x+130 w32 h32 BackgroundTrans" ,"img\s1.png").OnEvent("Click", ShowCount)
+  MyGui.Add("Picture","x+100 w32 h32 BackgroundTrans" ,"img\s1.png").OnEvent("Click", ShowCount)
   MyGui.Add("Picture","x+-32 w32 h32 BackgroundTrans" ,"img\s2.png").OnEvent("Click", HideCound)
   MyGui["static3"].Visible := False
-  MyGui.Add("Picture","x+10 w32 h32 BackgroundTrans" ,"img\m.png").OnEvent("Click", (*)=>MyToolTip(MyGui["Static6"].text))
+  MyGui.Add("Picture","x+10 w32 h32 BackgroundTrans" ,"img\m.png").OnEvent("Click", (*)=>MyGui["Static7"].Visible ^= 1)
+  MyGui.Add("Picture","x+10 w32 h32 BackgroundTrans" ,"img\setting.png").OnEvent("Click", (*)=>setting())
   MyGui.Add("Picture","x+10 w32 h32 BackgroundTrans" ,"img\close.png").OnEvent("Click", (*)=>MyGui.Hide())
   ; 第二排
   MyGui.Add("edit", "Disabled -Vscroll 0x201 w62 h56 y+36 xm+20", "~").key := ["~", "~"]
@@ -269,9 +277,8 @@ CreateGui(){
   MyGui.Add("edit", "Disabled -Vscroll 0x201 w62 h56 x+10", "0").key := ["Numpad0", "0"]
   MyGui.Add("edit", "Disabled -Vscroll 0x201 w126 h56 x+2", ".").key := ["NumpadDot", "."]
 
-  MyGui.Add("text", "Border y+0 w0 h0", "abc")
+  MyGui.Add("text", "x+-190 y+-288 w254 h288 BackGroundAAAAAA", "abc").Visible := False
 
-  WinSetTransColor(MyGui.BackColor, MyGui)
   OnMessage(0x201, GuiMove)
   return MyGui
 }
@@ -299,6 +306,7 @@ ShowCount(GuiCtrlObj, Info){
     }
   }
   GuiObj["static2"].Visible := False
+  GuiObj["static7"].Visible := False
   GuiObj["static3"].Visible := True
 }
 
@@ -312,11 +320,74 @@ HideCound(GuiCtrlObj, Info){
     }
   }
   GuiObj["static2"].Visible := True
+  GuiObj["static7"].Visible := False
   GuiObj["static3"].Visible := False
 }
 
-MyToolTip(text){
-  ToolTip(text)
-  KeyWait("Lbutton")
-  ToolTip
+
+Setting(){
+  c1 := iniread("kmcount_data.ini", "config", "c1", "0xEEEEEE") . ""
+  c2 := iniread("kmcount_data.ini", "config", "c2", "0xB26C65") . ""
+  bgimg := iniread("kmcount_data.ini", "config", "bgimg", "img\bg.png")
+  bgcolor := iniread("kmcount_data.ini", "config", "bgcolor", "0xFFFFFF") . ""
+  deviceinfo := StrSplit(IniRead("kmcount_data.ini", "Config", A_ComputerName, GetDeviceCaps()), ",")
+  sGui := Gui("","配置")
+  sGui.SetFont("S16 bold")
+  sGui.Add("Text", "", "屏幕信息：")
+  sGui.SetFont()
+  sGui.Add("Text", "xm y+20", "长（毫米）：")
+  c_w := sGui.Add("Edit", "x+ yp-4", deviceinfo[1])
+  sGui.Add("Text", "x+30 yp+4", "宽（毫米）：")
+  c_h := sGui.Add("Edit", "x+ yp-4", deviceinfo[2])
+
+  sGui.SetFont("S16 bold")
+  sGui.Add("Text", "xm", "主题：")
+  sGui.SetFont()
+  sGui.Add("Text", "xm y+20", "按键颜色1：")
+  c_c1 := sGUi.Add("Text", Format("Border x+2 c{} Background{}", c1, c1), c1)
+  c_c1.OnEvent("Click", ChooseColor)
+  sGui.Add("Text", "x+10", "按键颜色2：")
+  c_c2 := sGUi.Add("Text", Format("Border x+2 c{} Background{}", c2, c2), c2)
+  c_c2.OnEvent("Click", ChooseColor)
+  sGui.Add("Text", "x+10", "背景颜色：")
+  c_c3 := sGUi.Add("Text", Format("Border x+2 c{} Background{}", bgcolor, bgcolor), bgcolor)
+  c_c3.OnEvent("Click", ChooseColor)
+  sGui.Add("Text", "xm y+20", "背景图片：")
+  c_bgimg := sGui.Add("Edit", "x+2 yp-4 w270", bgimg)
+  sGui.Add("Button", "x+2 yp-2", ">>").OnEvent("Click", (*)=>c_bgimg.text := FileSelect("1", ,"选择背景图片", "*.jpg;*.png"))
+  sGui.SetFont()
+  sGui.Add("Button", "xm+80 w200", "保存并重启脚本").OnEvent("Click", (*)=>saveconfig(sGui, c_w, c_h, c_c1, c_c2, c_c3, c_bgimg))
+  sGui.Show()
+}
+
+saveconfig(sGui, c_w, c_h, c_c1, c_c2, c_c3, c_bgimg){
+  IniWrite(c_c1.text, "kmcount_data.ini", "Config", "c1")
+  IniWrite(c_c2.text, "kmcount_data.ini", "Config", "c2")
+  IniWrite(c_c3.text, "kmcount_data.ini", "Config", "bgcolor")
+  IniWrite(c_bgimg.text, "kmcount_data.ini", "Config", "bgimg")
+  width := c_w.text, height := c_h.text
+  hypotenuse := hypot(width, height) / 25.4
+  IniWrite(Format("{},{},{:.1f}", width, height, hypotenuse), "kmcount_data.ini", "Config", A_ComputerName)
+  Reload()
+  ; global deviceinfo := [width, height, hypotenuse]
+  ; sGui.Destroy()
+  ; MenuHandler("统计", "", "")
+}
+
+ChooseColor(GuiCtrlObj, Info){
+  default := GuiCtrlObj.Text
+  size := 36
+  CHOOSECOLORW := BufferAlloc(size, 0)
+  CustColors := BufferAlloc(64)
+  NumPut("Uint", size, CHOOSECOLORW, 0)
+  NumPut("Uint", RGB(default), CHOOSECOLORW,12)
+  NumPut("Ptr", BufferAlloc(64).ptr, CHOOSECOLORW, 16)
+  NumPut("Uint", 0x103, CHOOSECOLORW, 20)
+  DllCall("comdlg32\ChooseColorW", "Ptr", CHOOSECOLORW, "Uint")
+  bgcolor := Format("0x{:06x}", RGB(NumGet(CHOOSECOLORW, 12, "Uint")))
+  GuiCtrlObj.Opt(Format("BackGround{} c{}", bgcolor, bgcolor))
+  GuiCtrlObj.text := bgcolor
+  RGB(c){
+    return ((c & 0xFF) << 16) + (c & 0xFF00) + ((c >> 16) & 0xFF) 
+  }
 }
